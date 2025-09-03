@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simple Calculator + Camera/Mic</title>
+  <style>
+    :root {
+      --bg: #0f172a;        /* slate-900 */
+      --panel: #111827;     /* gray-900 */
+      --muted: #94a3b8;     /* slate-400 */
+      --text: #e5e7eb;      /* gray-200 */
+      --accent: #22c55e;    /* green-500 */
+      --accent-2: #3b82f6;  /* blue-500 */
+      --danger: #ef4444;    /* red-500 */
+      --shadow: 0 10px 25px rgba(0,0,0,.35);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    body{
+      margin:0; padding:32px; background:linear-gradient(120deg,#0b1020,#0e1326 60%,#0a0f1e);
+      color:var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    .container{ max-width:1080px; margin:0 auto; display:grid; grid-template-columns:1fr; gap:28px; }
+    @media(min-width:920px){ .container{ grid-template-columns: 1fr 1fr; } }
+
+    .card{ background:linear-gradient(180deg,#131a31,#0f172a); border:1px solid rgba(255,255,255,.06); border-radius:var(--radius); box-shadow:var(--shadow); padding:22px; }
+    .title{ font-size:20px; font-weight:700; letter-spacing:.3px; display:flex; align-items:center; gap:10px; }
+    .subtitle{ color:var(--muted); font-size:14px; margin-top:4px; }
+
+    /* Calculator */
+    .calc{
+      display:grid; grid-template-rows:auto auto 1fr; gap:16px;
+    }
+    .display{ background:#0b1226; border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:16px; text-align:right; font-size:28px; min-height:64px; display:flex; justify-content:flex-end; align-items:center; overflow-x:auto; }
+    .keys{ display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; }
+    .btn{ border:none; border-radius:14px; padding:16px; font-size:18px; color:#fff; background:#1f2937; cursor:pointer; transition:transform .05s ease, filter .15s ease, background .2s ease; }
+    .btn:active{ transform: translateY(1px) scale(.99); }
+    .btn.op{ background:#0e3a2f; }
+    .btn.fn{ background:#0b2a52; }
+    .btn.eq{ background:var(--accent); color:#0b1226; font-weight:800; }
+    .btn.cl{ background:var(--danger); }
+
+    .row{ display:flex; gap:10px; }
+    .grow{ flex:1; }
+
+    /* Camera/Mic */
+    .media-controls{ display:flex; gap:10px; flex-wrap:wrap; }
+    .primary{ background:var(--accent-2); color:#fff; border:none; border-radius:12px; padding:12px 16px; font-weight:700; cursor:pointer; }
+    .secondary{ background:#1f2937; color:#fff; border:none; border-radius:12px; padding:12px 16px; cursor:pointer; }
+    .danger{ background:var(--danger); color:#fff; border:none; border-radius:12px; padding:12px 16px; cursor:pointer; }
+
+    video{ width:100%; max-height:360px; background:#000; border-radius:16px; border:1px solid rgba(255,255,255,.06); }
+    .note{ color:var(--muted); font-size:13px; line-height:1.4; }
+    .badge{ display:inline-block; font-size:12px; padding:4px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Calculator Card -->
+    <section class="card calc" aria-label="Simple calculator">
+      <div>
+        <div class="title">🧮 Simple Calculator</div>
+        <p class="subtitle">Basic four-function calculator with keyboard support (0–9, + − × ÷, Enter, Backspace, C).</p>
+      </div>
+      <div id="calc-display" class="display" aria-live="polite">0</div>
+      <div class="keys" aria-label="calculator keys">
+        <button class="btn cl" data-key="C" aria-label="Clear">C</button>
+        <button class="btn fn" data-key="back" aria-label="Backspace">⌫</button>
+        <button class="btn fn" data-key="%">%</button>
+        <button class="btn op" data-key="/">÷</button>
+
+        <button class="btn" data-key="7">7</button>
+        <button class="btn" data-key="8">8</button>
+        <button class="btn" data-key="9">9</button>
+        <button class="btn op" data-key="*">×</button>
+
+        <button class="btn" data-key="4">4</button>
+        <button class="btn" data-key="5">5</button>
+        <button class="btn" data-key="6">6</button>
+        <button class="btn op" data-key="-">−</button>
+
+        <button class="btn" data-key="1">1</button>
+        <button class="btn" data-key="2">2</button>
+        <button class="btn" data-key="3">3</button>
+        <button class="btn op" data-key="+">+</button>
+
+        <button class="btn" data-key="0" style="grid-column: span 2;">0</button>
+        <button class="btn" data-key=".">.</button>
+        <button class="btn eq" data-key="=">=</button>
+      </div>
+    </section>
+
+    <!-- Camera & Microphone (Consent-Based) Card -->
+    <section class="card">
+      <div class="title">🎥 Camera & Mic Demo <span class="badge"></span></div>
+      <p class="subtitle">Modern browsers <strong>always</strong> ask the user before giving access. This demo shows the correct, ethical way: the user clicks a button, sees indicators, and can stop at any time.</p>
+
+      <div class="media-controls">
+        <button id="startBtn" class="primary">Enable Camera & Mic</button>
+        <button id="muteBtn" class="secondary" disabled>Mute Mic</button>
+        <button id="stopBtn" class="danger" disabled>Stop</button>
+      </div>
+      <div style="margin-top:12px">
+        <video id="preview" playsinline autoplay muted></video>
+      </div>
+      <p class="note" style="margin-top:10px">
+        Notes:
+        <br>• Browsers require a clear user gesture before asking for permission.
+        <br>• The tab will show camera/microphone indicators while active.
+        <br>• Clicking <em>Stop</em> immediately turns everything off.
+      </p>
+    </section>
+
+  </div>
+
+  <script>
+    // ===== Calculator Logic =====
+    (function(){
+      const display = document.getElementById('calc-display');
+      const keys = document.querySelectorAll('.keys .btn');
+      let expr = '';
+
+      function render() {
+        display.textContent = expr || '0';
+      }
+
+      function input(k){
+        if(k === 'C'){ expr = ''; return render(); }
+        if(k === 'back'){ expr = expr.slice(0,-1); return render(); }
+        if(k === '='){
+          try{
+            if(/^[0-9+\-*/%.\s]+$/.test(expr)){
+              // Replace percentage: 50% => 0.5
+              const normalized = expr.replace(/(\d+(?:\.\d+)?)%/g, (_,n)=> String(Number(n)/100));
+              const result = Function('return (' + normalized + ')')();
+              expr = String(result);
+            }
+          }catch(e){ expr = 'Error'; }
+          return render();
+        }
+        // Prevent multiple dots in a number token
+        if(k === '.'){
+          const parts = expr.split(/[^0-9.]/);
+          const last = parts[parts.length-1];
+          if(last.includes('.')) return; // ignore extra dot
+        }
+        expr += k;
+        render();
+      }
+
+      keys.forEach(btn => btn.addEventListener('click', () => input(btn.dataset.key)));
+
+      window.addEventListener('keydown', (e)=>{
+        const map = { 'Enter':'=', 'Backspace':'back', '/':'/', '*':'*', '+':'+', '-':'-', '.':'.' };
+        if((e.key>='0' && e.key<='9') || map[e.key]){
+          e.preventDefault();
+          input(map[e.key] || e.key);
+        }
+        if(e.key==='c' || e.key==='C'){ input('C'); }
+      });
+
+      render();
+    })();
+
+    // ===== Camera & Mic (Consent-Based) =====
+    (function(){
+      const startBtn = document.getElementById('startBtn');
+      const stopBtn = document.getElementById('stopBtn');
+      const muteBtn = document.getElementById('muteBtn');
+      const videoEl = document.getElementById('preview');
+      let stream = null;
+      let audioTrack = null;
+
+      async function start(){
+        try{
+          // Requires a user gesture. Browser will show a permission prompt.
+          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+          videoEl.srcObject = stream;
+          const tracks = stream.getAudioTracks();
+          audioTrack = tracks[0] || null;
+          startBtn.disabled = true;
+          stopBtn.disabled = false;
+          muteBtn.disabled = !audioTrack;
+        }catch(err){
+          alert('Permission denied or no device available: ' + err.message);
+        }
+      }
+
+      function stop(){
+        if(stream){
+          stream.getTracks().forEach(t => t.stop());
+          videoEl.srcObject = null;
+          stream = null;
+        }
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+        muteBtn.disabled = true;
+      }
+
+      function toggleMute(){
+        if(!audioTrack) return;
+        audioTrack.enabled = !audioTrack.enabled;
+        muteBtn.textContent = audioTrack.enabled ? 'Mute Mic' : 'Unmute Mic';
+      }
+
+      startBtn.addEventListener('click', start);
+      stopBtn.addEventListener('click', stop);
+      muteBtn.addEventListener('click', toggleMute);
+    })();
+  </script>
+</body>
+</html>
